@@ -315,7 +315,8 @@
       <Profile>false</Profile>
     </Link>
     <PreBuildEvent>
-      <Command>POWERSHELL.EXE -NoLogo -ExecutionPolicy Unrestricted -NoProfile -File "$(ProjectDir)Build\Compress Strings.ps1" -Path "$(ProjectDir)res\*.txt"</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
     <Manifest>
       <AdditionalManifestFiles>res\windirstat.manifest</AdditionalManifestFiles>
