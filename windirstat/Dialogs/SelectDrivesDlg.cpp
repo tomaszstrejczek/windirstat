@@ -409,6 +409,7 @@ void CSelectDrivesDlg::DoDataExchange(CDataExchange* pDX)
     DDX_Check(pDX, IDC_SCAN_DUPLICATES, m_ScanDuplicates);
     DDX_Control(pDX, IDOK, m_OkButton);
     DDX_Control(pDX, IDC_BROWSE_FOLDER, m_Browse);
+    DDX_Control(pDX, IDC_BROWSE_FILE, m_BrowseFile);
 }
 
 #pragma warning(push)
@@ -419,6 +420,7 @@ BEGIN_MESSAGE_MAP(CSelectDrivesDlg, CDialogEx)
     ON_BN_CLICKED(IDC_RADIO_TARGET_FOLDER, &CSelectDrivesDlg::OnBnClickedRadioTargetFolder)
     ON_BN_CLICKED(IDC_SCAN_DUPLICATES, OnBnClickedUpdateButtons)
     ON_EN_CHANGE(IDC_BROWSE_FOLDER, OnEnChangeFolderName)
+    ON_EN_CHANGE(IDC_BROWSE_FILE, OnEnChangeFileName)
     ON_MESSAGE(WMU_OK, OnWmuOk)
     ON_NOTIFY(LVN_ITEMCHANGED, IDC_TARGET_DRIVES_LIST, OnLvnItemChangedDrives)
     ON_NOTIFY(NM_SETFOCUS, IDC_TARGET_DRIVES_LIST, &CSelectDrivesDlg::OnNMSetfocusTargetDrivesList)
@@ -473,11 +475,14 @@ BOOL CSelectDrivesDlg::OnInitDialog()
     m_FolderName = COptions::SelectDrivesFolder.Obj().c_str();
     m_SelectedDrives = COptions::SelectDrivesDrives;
     m_ScanDuplicates = COptions::ScanForDuplicates;
+    m_FileName = L"C:\\Users\\nb536457\\OneDrive - Nest Bank S.A\\tmp\\sanestloggingdevwe.csv";
 
     CBitmap bitmap;
     bitmap.LoadBitmapW(IDB_FILE_SELECT);
     m_Browse.SetBrowseButtonImage(bitmap, TRUE);
     m_Browse.SetWindowTextW(m_FolderName);
+    m_BrowseFile.EnableFileBrowseButton();
+    m_BrowseFile.SetWindowTextW(m_FileName);
 
     ShowWindow(SW_SHOWNORMAL);
     UpdateWindow();
@@ -526,7 +531,9 @@ BOOL CSelectDrivesDlg::OnInitDialog()
     UpdateData(FALSE);
 
     if (m_Radio == RADIO_TARGET_DRIVES_ALL ||
-        m_Radio == RADIO_TARGET_FOLDER)
+        m_Radio == RADIO_TARGET_FOLDER ||
+        m_Radio == RADIO_TARGET_FILE
+        )
     {
         m_OkButton.SetFocus();
     }
@@ -549,6 +556,12 @@ void CSelectDrivesDlg::OnOK()
     {
         if (m_FolderName.GetAt(m_FolderName.GetLength() - 1) == L':') m_FolderName.AppendChar(L'\\');
         m_FolderName = GetFullPathName(m_FolderName.GetString()).c_str();
+        UpdateData(FALSE);
+    }
+
+    if (m_Radio == RADIO_TARGET_FILE)
+    {
+        m_FileName = GetFullPathName(m_FileName.GetString()).c_str();
         UpdateData(FALSE);
     }
 
@@ -603,6 +616,19 @@ void CSelectDrivesDlg::UpdateButtons()
             }
         }
         break;
+    case RADIO_TARGET_FILE:
+        if (!m_FileName.IsEmpty())
+        {
+            if (m_FileName.GetLength() >= 2 && m_FileName.Left(2) != L"\\\\")
+            {
+                enableOk = true;
+            }
+            else
+            {
+                enableOk = FileFindEnhanced::DoesFileExist(m_FileName.GetString());
+            }
+        }
+        break;
     default:
         {
             ASSERT(FALSE);
@@ -629,6 +655,15 @@ void CSelectDrivesDlg::OnBnClickedRadioTargetFolder()
     UpdateButtons();
 }
 
+void CSelectDrivesDlg::OnBnClickedRadioTargetFile()
+{
+    // dynamically adjust next tab order
+    GetDlgItem(IDC_TARGET_DRIVES_LIST)->SetWindowPos(
+        GetDlgItem(IDC_BROWSE_FILE), 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+
+    UpdateButtons();
+}
+
 void CSelectDrivesDlg::OnEnChangeFolderName()
 {
     m_Radio = RADIO_TARGET_FOLDER;
@@ -637,6 +672,16 @@ void CSelectDrivesDlg::OnEnChangeFolderName()
     m_Browse.GetWindowText(m_FolderName);
     UpdateButtons();
 }
+
+void CSelectDrivesDlg::OnEnChangeFileName()
+{
+    m_Radio = RADIO_TARGET_FILE;
+    UpdateData(FALSE);
+
+    m_BrowseFile.GetWindowText(m_FileName);
+    UpdateButtons();
+}
+
 
 void CSelectDrivesDlg::OnLvnItemChangedDrives(NMHDR* /*pNMHDR*/, LRESULT* pResult)
 {

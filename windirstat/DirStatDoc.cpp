@@ -74,7 +74,7 @@ CDirStatDoc* CDirStatDoc::GetDocument()
 // Encodes a selection from the CSelectDrivesDlg into a string which can be routed as a pseudo
 // document "path" through MFC and finally arrives in OnOpenDocument().
 //
-std::wstring CDirStatDoc::EncodeSelection(const RADIO radio, const std::wstring& folder, const std::vector<std::wstring>& drives)
+std::wstring CDirStatDoc::EncodeSelection(const RADIO radio, const std::wstring& folder, const std::vector<std::wstring>& drives, const std::wstring& filePath)
 {
     std::wstring ret;
     switch (radio)
@@ -98,16 +98,22 @@ std::wstring CDirStatDoc::EncodeSelection(const RADIO radio, const std::wstring&
             ret = folder;
         }
         break;
+    case RADIO_TARGET_FILE:
+        {
+            ret = filePath;
+        }
+        break;
     }
     return ret;
 }
 
 // The inverse of EncodeSelection
 //
-void CDirStatDoc::DecodeSelection(const std::wstring& s, std::wstring& folder, std::vector<std::wstring>& drives)
+void CDirStatDoc::DecodeSelection(const std::wstring& s, std::wstring& folder, std::vector<std::wstring>& drives, std::wstring& filePath)
 {
     folder.clear();
     drives.clear();
+    filePath.clear();
 
     // s is either something like "C:\programme"
     // or something like "C:|D:|E:".
@@ -158,6 +164,7 @@ void CDirStatDoc::DecodeSelection(const std::wstring& s, std::wstring& folder, s
             }
 
             folder = f;
+            filePath = f;
         }
     }
 }
@@ -217,7 +224,8 @@ BOOL CDirStatDoc::OnOpenDocument(LPCWSTR lpszPathName)
     const std::wstring spec = lpszPathName;
     std::wstring folder;
     std::vector<std::wstring> drives;
-    DecodeSelection(spec, folder, drives);
+    std::wstring filePath;
+    DecodeSelection(spec, folder, drives, filePath);
 
     // Prepare for new root and delete any existing data
     CDocument::OnNewDocument();
@@ -287,6 +295,7 @@ BOOL CDirStatDoc::OnOpenDocument(LPCWSTR lpszPathName)
 
     // Update new root for display
     UpdateAllViews(nullptr, HINT_NEWROOT);
+    GetDocument()->GetRootItem()->BuildFromFile(filePath);
     StartScanningEngine(std::vector({ GetDocument()->GetRootItem() }));
     return true;
 }

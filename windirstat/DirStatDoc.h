@@ -86,8 +86,8 @@ protected:
 
     ~CDirStatDoc() override;
 
-    static std::wstring EncodeSelection(RADIO radio, const std::wstring& folder, const std::vector<std::wstring>& drives);
-    static void DecodeSelection(const std::wstring& s, std::wstring& folder, std::vector<std::wstring>& drives);
+    static std::wstring EncodeSelection(RADIO radio, const std::wstring& folder, const std::vector<std::wstring>& drives, const std::wstring& filePath);
+    static void DecodeSelection(const std::wstring& s, std::wstring& folder, std::vector<std::wstring>& drives, std::wstring& filePath);
     static WCHAR GetEncodingSeparator();
 
     void DeleteContents() override;

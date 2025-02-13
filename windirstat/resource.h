@@ -41,6 +41,7 @@
 #define IDC_RADIO_TARGET_DRIVES_ALL     1000
 #define IDC_RADIO_TARGET_DRIVES_SUBSET  1001
 #define IDC_RADIO_TARGET_FOLDER         1002
+#define IDC_RADIO_TARGET_FILE           1003
 #define IDC_TARGET_DRIVES_LIST          1005
 #define IDC_TAB                         1013
 #define IDC_CAPTION                     1014
@@ -121,6 +122,8 @@
 #define IDC_TREECOL_ATTRIBUTES          1231
 #define IDC_BROWSE_FOLDER               1232
 #define IDC_FILENAMES                   1233
+#define IDC_BROWSE_FOLDER2              1233
+#define IDC_BROWSE_FILE                 1233
 #define IDC_SCAN_DUPLICATES             1234
 #define IDC_RESET_PREFERENCES           1235
 #define IDC_FILTERING_EXCLUDE_DIRS      1236
