@@ -359,7 +359,7 @@ void CDirStatApp::OnFileOpen()
     if (IDOK == dlg.DoModal())
     {
         const std::wstring path = CDirStatDoc::EncodeSelection(static_cast<RADIO>(dlg.m_Radio),
-            dlg.m_FolderName.GetString(), dlg.m_Drives);
+            dlg.m_FolderName.GetString(), dlg.m_Drives, dlg.m_FileName.GetString());
         m_PDocTemplate->OpenDocumentFile(path.c_str(), true);
     }
 }
