@@ -611,6 +611,7 @@
     <ClInclude Include="Controls\TreeListControl.h" />
     <ClInclude Include="Controls\TreeMap.h" />
     <ClInclude Include="Controls\XYSlider.h" />
+    <ClInclude Include="IFileDataProvider.h" />
     <ClInclude Include="ItemTop.h" />
     <ClInclude Include="OleFilterOverride.h" />
     <ClInclude Include="Pages\PageFiltering.h" />
@@ -667,6 +668,7 @@
     <ClCompile Include="DirStatDoc.cpp">
     </ClCompile>
     <ClCompile Include="FileFind.cpp" />
+    <ClCompile Include="FileListDataProvider.cpp" />
     <ClCompile Include="GlobalHelpers.cpp">
     </ClCompile>
     <ClCompile Include="Item.cpp">
@@ -695,6 +697,7 @@
     <ClCompile Include="Pages\PageTreeMap.cpp">
     </ClCompile>
     <ClCompile Include="Property.cpp" />
+    <ClCompile Include="StandardDataProvider.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">Create</PrecompiledHeader>

@@ -28,6 +28,8 @@
 
 #include <shared_mutex>
 
+class IFileDataProvider;
+
 // Columns
 enum ITEMCOLUMNS : std::uint8_t
 {
@@ -161,7 +163,7 @@ public:
 
     ULONGLONG GetProgressRange() const;
     ULONGLONG GetProgressPos() const;
-    void UpdateStatsFromDisk();
+    void UpdateStatsFromDisk(std::shared_ptr<IFileDataProvider> provider);
     const std::vector<CItem*>& GetChildren() const;
     CItem* GetParent() const;
     void AddChild(CItem* child, bool addOnly = false);

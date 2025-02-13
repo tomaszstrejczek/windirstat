@@ -122,7 +122,8 @@ std::tuple<ULONGLONG, ULONGLONG> CDirStatApp::GetFreeDiskSpace(const std::wstrin
         VTRACE(L"GetDiskFreeSpaceEx({}) failed.", pszRootPath.c_str());
     }
 
-    ASSERT(u64free.QuadPart <= u64total.QuadPart);
+    // In some setups of network drives, the free space can be larger than the total space
+    //ASSERT(u64free.QuadPart <= u64total.QuadPart);
     return { u64total.QuadPart, u64free.QuadPart };
 }
 

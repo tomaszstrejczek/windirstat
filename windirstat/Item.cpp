@@ -29,6 +29,7 @@
 #include "BlockingQueue.h"
 #include "Localization.h"
 #include "SmartPointer.h"
+#include "IFileDataProvider.h"
 
 #include <string>
 #include <algorithm>
@@ -468,7 +469,7 @@ ULONGLONG CItem::GetProgressPos() const
     return 0;
 }
 
-void CItem::UpdateStatsFromDisk()
+void CItem::UpdateStatsFromDisk(std::shared_ptr<IFileDataProvider> provider)
 {
     if (IsType(IT_DIRECTORY | IT_FILE))
     {

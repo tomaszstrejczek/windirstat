@@ -23,54 +23,23 @@
 #include "stdafx.h"
 #include <string>
 
-class FileFindEnhanced final
+class IFileFind
 {
-    using FILE_FULL_DIR_INFORMATION = struct {
-        ULONG         NextEntryOffset;
-        ULONG         FileIndex;
-        LARGE_INTEGER CreationTime;
-        LARGE_INTEGER LastAccessTime;
-        LARGE_INTEGER LastWriteTime;
-        LARGE_INTEGER ChangeTime;
-        LARGE_INTEGER EndOfFile;
-        LARGE_INTEGER AllocationSize;
-        ULONG         FileAttributes;
-        ULONG         FileNameLength;
-        ULONG         EaSize;
-        WCHAR         FileName[1];
-    };
-
-    std::wstring m_Search;
-    std::wstring m_Base;
-    std::wstring m_Name;
-    HANDLE m_Handle = nullptr;
-    DWORD m_InitialAttributes = INVALID_FILE_ATTRIBUTES;
-    bool m_Firstrun = true;
-    FILE_FULL_DIR_INFORMATION* m_CurrentInfo = nullptr;
-    static constexpr std::wstring_view m_Dos = L"\\??\\";
-    static constexpr std::wstring_view m_DosUNC = L"\\??\\UNC\\";
-    static constexpr std::wstring_view m_Long = L"\\\\?\\";
-    static constexpr std::wstring_view m_LongUNC = L"\\\\?\\UNC\\";
-
 public:
-
-    FileFindEnhanced() = default;
-    ~FileFindEnhanced();
-
-    bool FindNextFile();
-    bool FindFile(const std::wstring& strFolder,const std::wstring& strName = L"", DWORD attr = INVALID_FILE_ATTRIBUTES);
-    bool IsDirectory() const;
-    bool IsDots() const;
-    bool IsHidden() const;
-    bool IsHiddenSystem() const;
-    bool IsProtectedReparsePoint() const;
-    DWORD GetAttributes() const;
-    std::wstring GetFileName() const;
-    ULONGLONG GetFileSizePhysical() const;
-    ULONGLONG GetFileSizeLogical() const;
-    FILETIME GetLastWriteTime() const;
-    std::wstring GetFilePath() const;
-    std::wstring GetFilePathLong() const;
-    static bool DoesFileExist(const std::wstring& folder, const std::wstring& file = {});
-    static std::wstring MakeLongPathCompatible(const std::wstring& path);
+    virtual bool FindNextFile() = 0;
+    virtual bool FindFile(const std::wstring& strFolder, const std::wstring& strName = L"", DWORD attr = INVALID_FILE_ATTRIBUTES) = 0;
+    virtual bool IsDirectory() const = 0;
+    virtual bool IsDots() const = 0;
+    virtual bool IsHidden() const = 0;
+    virtual bool IsHiddenSystem() const = 0;
+    virtual bool IsProtectedReparsePoint() const = 0;
+    virtual DWORD GetAttributes() const = 0;
+    virtual std::wstring GetFileName() const = 0;
+    virtual ULONGLONG GetFileSizePhysical() const = 0;
+    virtual ULONGLONG GetFileSizeLogical() const = 0;
+    virtual FILETIME GetLastWriteTime() const = 0;
+    virtual std::wstring GetFilePath() const = 0;
+    virtual std::wstring GetFilePathLong() const = 0;
 };
+
+std::shared_ptr<IFileFind> GetStandardFileFind();

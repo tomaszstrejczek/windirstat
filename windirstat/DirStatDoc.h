@@ -31,6 +31,7 @@
 class CItem;
 class CItemDupe;
 class CItemTop;
+class IFileDataProvider;
 
 //
 // The treemap colors as calculated in CDirStatDoc::SetExtensionColors()
@@ -158,7 +159,7 @@ protected:
 
     bool m_ShowMyComputer = false; // True, if the user selected more than one drive for scanning.
     // In this case, we need a root pseudo item ("My Computer").
-
+    std::shared_ptr<IFileDataProvider> m_FileDataProvider; // The file data provider for the scan
     CItem* m_RootItem = nullptr; // The very root item
     CItemDupe* m_RootItemDupe = nullptr; // The very root dupe item
     CItemTop* m_RootItemTop = nullptr; // The very root top item

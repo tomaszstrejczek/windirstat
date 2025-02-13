@@ -44,6 +44,8 @@
 #include <stack>
 #include <array>
 
+#include "IFileDataProvider.h"
+
 IMPLEMENT_DYNCREATE(CDirStatDoc, CDocument)
 
 CDirStatDoc::CDirStatDoc() :
@@ -52,6 +54,10 @@ CDirStatDoc::CDirStatDoc() :
 {
     ASSERT(nullptr == _theDocument);
     _theDocument = this;
+
+    auto provider = GetStandardDataProvider();
+    ASSERT(provider.has_value());
+    m_FileDataProvider = provider.value();
 
     VTRACE(L"sizeof(CItem) = {}", sizeof(CItem));
     VTRACE(L"sizeof(CTreeListItem) = {}", sizeof(CTreeListItem));
@@ -236,6 +242,12 @@ BOOL CDirStatDoc::OnOpenDocument(LPCWSTR lpszPathName)
     // Return if no drives or folder were passed
     if (drives.empty() && folder.empty()) return true;
 
+    auto provider = filePath.empty() ? GetStandardDataProvider() : GetFileListDataProvider(filePath);
+    if (provider.has_value())
+        m_FileDataProvider = provider.value();
+    else
+        return false;
+
     // Determine if we should add multiple drives under a single node
     std::vector<std::wstring> rootFolders;
     if (drives.empty())
@@ -295,7 +307,6 @@ BOOL CDirStatDoc::OnOpenDocument(LPCWSTR lpszPathName)
 
     // Update new root for display
     UpdateAllViews(nullptr, HINT_NEWROOT);
-    GetDocument()->GetRootItem()->BuildFromFile(filePath);
     StartScanningEngine(std::vector({ GetDocument()->GetRootItem() }));
     return true;
 }

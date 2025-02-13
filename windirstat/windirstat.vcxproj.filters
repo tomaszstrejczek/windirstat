@@ -275,6 +275,9 @@
     <ClInclude Include="Views\TreeMapView.h">
       <Filter>Header Files\Views</Filter>
     </ClInclude>
+    <ClInclude Include="IFileDataProvider.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DirStatDoc.cpp">
@@ -405,6 +408,12 @@
     </ClCompile>
     <ClCompile Include="Controls\ColorButton.cpp">
       <Filter>Source Files\Controls</Filter>
+    </ClCompile>
+    <ClCompile Include="FileListDataProvider.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="StandardDataProvider.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
