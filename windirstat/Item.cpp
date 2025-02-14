@@ -43,7 +43,7 @@
 #pragma comment(lib, "crypt32.lib")
 #pragma comment(lib, "bcrypt.lib")
 
-CItem::CItem(const ITEMTYPE type, const std::wstring & name) : m_Name(name), m_Type(type)
+CItem::CItem(const ITEMTYPE type, const std::wstring & name, std::shared_ptr<IFileDataProvider> provider) : m_Name(name), m_Type(type), m_FileDataProvider(provider)
 {
     if (IsType(IT_DRIVE))
     {
@@ -61,7 +61,7 @@ CItem::CItem(const ITEMTYPE type, const std::wstring & name) : m_Name(name), m_T
 
 CItem::CItem(const ITEMTYPE type, const std::wstring& name, const FILETIME lastChange,
              const ULONGLONG sizePhysical, const ULONGLONG sizeLogical,
-             const DWORD attributes, const ULONG files, const ULONG subdirs) : CItem(type, name)
+             const DWORD attributes, const ULONG files, const ULONG subdirs, std::shared_ptr<IFileDataProvider> provider) : CItem(type, name, provider)
 {
     m_LastChange = lastChange;
     m_SizePhysical = sizePhysical;
@@ -469,23 +469,23 @@ ULONGLONG CItem::GetProgressPos() const
     return 0;
 }
 
-void CItem::UpdateStatsFromDisk(std::shared_ptr<IFileDataProvider> provider)
+void CItem::UpdateStatsFromDisk()
 {
     if (IsType(IT_DIRECTORY | IT_FILE))
     {
-        FileFindEnhanced finder;
-        if (finder.FindFile(GetFolderPath(),IsType(ITF_ROOTITEM) ? std::wstring() : GetName(), GetAttributes()))
+        std::shared_ptr<IFileFind> finder = m_FileDataProvider->GetFinder();
+        if (finder->FindFile(GetFolderPath(),IsType(ITF_ROOTITEM) ? std::wstring() : GetName(), GetAttributes()))
         {
-            SetLastChange(finder.GetLastWriteTime());
-            SetAttributes(finder.GetAttributes());
+            SetLastChange(finder->GetLastWriteTime());
+            SetAttributes(finder->GetAttributes());
 
             if (IsType(IT_FILE))
             {
                 ExtensionDataRemove();
                 UpwardSubtractSizePhysical(m_SizePhysical);
                 UpwardSubtractSizeLogical(m_SizeLogical);
-                UpwardAddSizePhysical(finder.GetFileSizePhysical());
-                UpwardAddSizeLogical(finder.GetFileSizeLogical());
+                UpwardAddSizePhysical(finder->GetFileSizePhysical());
+                UpwardAddSizeLogical(finder->GetFileSizeLogical());
                 ExtensionDataAdd();
             }
         }
@@ -834,7 +834,7 @@ std::wstring CItem::GetPath() const
 
 std::wstring CItem::GetPathLong() const
 {
-    return FileFindEnhanced::MakeLongPathCompatible(GetPath());
+    return m_FileDataProvider->MakeLongPathCompatible(GetPath());
 }
 
 std::wstring CItem::GetOwner(const bool force) const
@@ -990,25 +990,25 @@ void CItem::ScanItems(BlockingQueue<CItem*> * queue)
 
         if (item->IsType(IT_DRIVE | IT_DIRECTORY))
         {
-            FileFindEnhanced finder;
-            for (BOOL b = finder.FindFile(item->GetPath(), L"", item->GetAttributes()); b; b = finder.FindNextFile())
+            auto finder = item->m_FileDataProvider->GetFinder();
+            for (BOOL b = finder->FindFile(item->GetPath(), L"", item->GetAttributes()); b; b = finder->FindNextFile())
             {
-                if (finder.IsDots())
+                if (finder->IsDots())
                 {
                     continue;
                 }
 
-                if (finder.IsDirectory())
+                if (finder->IsDirectory())
                 {
-                    if (COptions::ExcludeHiddenDirectory && finder.IsHidden() ||
-                        COptions::ExcludeProtectedDirectory && finder.IsHiddenSystem())
+                    if (COptions::ExcludeHiddenDirectory && finder->IsHidden() ||
+                        COptions::ExcludeProtectedDirectory && finder->IsHiddenSystem())
                     {
                         continue;
                     }
   
                     // Exclude directories matching path filter
                     if (!COptions::FilteringExcludeDirsRegex.empty() && std::ranges::any_of(COptions::FilteringExcludeDirsRegex,
-                        [&finder](const auto& pattern) { return std::regex_match(finder.GetFilePath(), pattern); }))
+                        [&finder](const auto& pattern) { return std::regex_match(finder->GetFilePath(), pattern); }))
                     {
                         continue;
                     }
@@ -1021,23 +1021,23 @@ void CItem::ScanItems(BlockingQueue<CItem*> * queue)
                 }
                 else
                 {
-                    if (COptions::ExcludeHiddenFile && finder.IsHidden() ||
-                        COptions::ExcludeProtectedFile && finder.IsHiddenSystem() ||
-                        COptions::ExcludeSymbolicLinksFile && CReparsePoints::IsReparsePoint(finder.GetAttributes()) &&
-                            CReparsePoints::IsSymbolicLink(finder.GetFilePathLong(), finder.GetAttributes()))
+                    if (COptions::ExcludeHiddenFile && finder->IsHidden() ||
+                        COptions::ExcludeProtectedFile && finder->IsHiddenSystem() ||
+                        COptions::ExcludeSymbolicLinksFile && CReparsePoints::IsReparsePoint(finder->GetAttributes()) &&
+                            CReparsePoints::IsSymbolicLink(finder->GetFilePathLong(), finder->GetAttributes()))
                     {
                         continue;
                     }
 
                     // Exclude files matching name filter
                     if (!COptions::FilteringExcludeFilesRegex.empty() && std::ranges::any_of(COptions::FilteringExcludeFilesRegex,
-                        [&finder](const auto& pattern) { return std::regex_match(finder.GetFileName(), pattern); }))
+                        [&finder](const auto& pattern) { return std::regex_match(finder->GetFileName(), pattern); }))
                     {
                         continue;
                     }
 
                     // Exclude files matching size filter
-                    if (COptions::FilteringSizeMinimumCalculated > 0 && finder.GetFileSizeLogical() < COptions::FilteringSizeMinimumCalculated)
+                    if (COptions::FilteringSizeMinimumCalculated > 0 && finder->GetFileSizeLogical() < COptions::FilteringSizeMinimumCalculated)
                     {
                         continue;
                     }
@@ -1130,7 +1130,7 @@ void CItem::CreateFreeSpaceItem()
 
     auto [total, free] = CDirStatApp::GetFreeDiskSpace(GetPath());
 
-    const auto freespace = new CItem(IT_FREESPACE, Localization::Lookup(IDS_FREESPACE_ITEM));
+    const auto freespace = new CItem(IT_FREESPACE, Localization::Lookup(IDS_FREESPACE_ITEM), m_FileDataProvider);
     freespace->SetSizePhysical(free);
     freespace->SetDone();
 
@@ -1207,7 +1207,7 @@ void CItem::CreateUnknownItem()
 
     UpwardSetUndone();
 
-    const auto unknown = new CItem(IT_UNKNOWN, Localization::Lookup(IDS_UNKNOWN_ITEM));
+    const auto unknown = new CItem(IT_UNKNOWN, Localization::Lookup(IDS_UNKNOWN_ITEM), m_FileDataProvider);
     unknown->SetDone();
 
     AddChild(unknown);
@@ -1339,26 +1339,26 @@ std::wstring CItem::UpwardGetPathWithoutBackslash() const
     return path;
 }
 
-CItem* CItem::AddDirectory(const FileFindEnhanced& finder)
+CItem* CItem::AddDirectory(const std::shared_ptr<IFileFind> finder)
 {
-    const bool follow = !finder.IsProtectedReparsePoint() &&
-        CDirStatApp::Get()->IsFollowingAllowed(finder.GetFilePathLong(), finder.GetAttributes());
+    const bool follow = !finder->IsProtectedReparsePoint() &&
+        CDirStatApp::Get()->IsFollowingAllowed(finder->GetFilePathLong(), finder->GetAttributes());
 
-    const auto & child = new CItem(IT_DIRECTORY, finder.GetFileName());
-    child->SetLastChange(finder.GetLastWriteTime());
-    child->SetAttributes(finder.GetAttributes());
+    const auto & child = new CItem(IT_DIRECTORY, finder->GetFileName(), m_FileDataProvider);
+    child->SetLastChange(finder->GetLastWriteTime());
+    child->SetAttributes(finder->GetAttributes());
     AddChild(child);
     child->UpwardAddReadJobs(follow ? 1 : 0);
     return child;
 }
 
-CItem* CItem::AddFile(const FileFindEnhanced& finder)
+CItem* CItem::AddFile(const std::shared_ptr<IFileFind> finder)
 {
-    const auto & child = new CItem(IT_FILE, finder.GetFileName());
-    child->SetSizePhysical(finder.GetFileSizePhysical());
-    child->SetSizeLogical(finder.GetFileSizeLogical());
-    child->SetLastChange(finder.GetLastWriteTime());
-    child->SetAttributes(finder.GetAttributes());
+    const auto & child = new CItem(IT_FILE, finder->GetFileName(), m_FileDataProvider);
+    child->SetSizePhysical(finder->GetFileSizePhysical());
+    child->SetSizeLogical(finder->GetFileSizeLogical());
+    child->SetLastChange(finder->GetLastWriteTime());
+    child->SetAttributes(finder->GetAttributes());
     child->ExtensionDataAdd();
     AddChild(child);
     child->SetDone();

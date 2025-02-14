@@ -80,10 +80,11 @@ std::vector<LANGID> Localization::GetLanguageList()
 
     }, reinterpret_cast<LONG_PTR>(&results), 0, 0);
 
-    FileFindEnhanced finder;
-    for (BOOL b = finder.FindFile(GetAppFolder(), L"lang_??.txt"); b; b = finder.FindNextFile())
+
+    auto finder = GetStandardDataProvider()->GetFinder();
+    for (BOOL b = finder->FindFile(GetAppFolder(), L"lang_??.txt"); b; b = finder->FindNextFile())
     {
-        const std::wstring lang = finder.GetFileName().substr(5, 2);
+        const std::wstring lang = finder->GetFileName().substr(5, 2);
         const LCID lcid = LocaleNameToLCID(lang.c_str(), LOCALE_ALLOW_NEUTRAL_NAMES);
         if (lcid == LOCALE_NEUTRAL || lcid == LOCALE_CUSTOM_UNSPECIFIED) continue;
 
@@ -97,10 +98,11 @@ std::vector<LANGID> Localization::GetLanguageList()
 
 bool Localization::LoadResource(const WORD language)
 {
-    FileFindEnhanced finder;
+    auto provider = GetStandardDataProvider();
+    auto finder = provider->GetFinder();
     const std::wstring lang = GetLocaleString(LOCALE_SISO639LANGNAME, language);
     const std::wstring name = L"lang_" + lang + L".txt";
-    if (FileFindEnhanced::DoesFileExist(GetAppFolder(), name))
+    if (provider->DoesFileExist(GetAppFolder(), name))
     {
         return LoadFile((GetAppFolder() + L"\\" + name));
     }

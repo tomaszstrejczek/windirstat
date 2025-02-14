@@ -24,6 +24,7 @@
 #include "GlobalHelpers.h"
 #include "Options.h"
 #include "Localization.h"
+#include "IFileDataProvider.h"
 #include "FileFind.h"
 
 #include <array>
@@ -344,12 +345,6 @@ void WaitForHandleWithRepainting(const HANDLE h, const DWORD TimeOut)
         // The handle became signaled.
         break;
     }
-}
-
-bool FolderExists(const std::wstring & path)
-{
-    const DWORD result = GetFileAttributes(FileFindEnhanced::MakeLongPathCompatible(path).c_str());
-    return result != INVALID_FILE_ATTRIBUTES && (result & FILE_ATTRIBUTE_DIRECTORY) != 0;
 }
 
 bool DriveExists(const std::wstring& path)
@@ -706,13 +701,6 @@ void DisableHibernate()
     {
         DeleteFile((drive + std::wstring(L"\\hiberfil.sys")).c_str());
     }
-}
-
-bool IsHibernateEnabled()
-{
-    WCHAR drive[3];
-    return GetEnvironmentVariable(L"SystemDrive", drive, std::size(drive)) == std::size(drive) - 1 &&
-        FileFindEnhanced::DoesFileExist(drive + std::wstring(L"\\"), L"hiberfil.sys");
 }
 
 bool ShellExecuteWrapper(const std::wstring& lpFile, const std::wstring& lpParameters, const std::wstring& lpVerb,

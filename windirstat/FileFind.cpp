@@ -20,6 +20,7 @@
 
 #include "stdafx.h"
 
+#include "IFileDataProvider.h"
 #include "FileFind.h"
 #include "Options.h"
 #include "Tracer.h"
@@ -55,9 +56,11 @@ class FileFindEnhanced: public IFileFind
     static constexpr std::wstring_view m_Long = L"\\\\?\\";
     static constexpr std::wstring_view m_LongUNC = L"\\\\?\\UNC\\";
 
+    std::shared_ptr<IFileDataProvider> m_FileDataProvider;
+
 public:
 
-    FileFindEnhanced() = default;
+    FileFindEnhanced(std::shared_ptr<IFileDataProvider> fileDataProvider) : m_FileDataProvider(fileDataProvider) {}
     ~FileFindEnhanced();
 
     bool FindNextFile();
@@ -74,13 +77,11 @@ public:
     FILETIME GetLastWriteTime() const;
     std::wstring GetFilePath() const;
     std::wstring GetFilePathLong() const;
-    static bool DoesFileExist(const std::wstring& folder, const std::wstring& file = {});
-    static std::wstring MakeLongPathCompatible(const std::wstring& path);
 };
 
-std::shared_ptr<IFileFind> GetStandardFileFind()
+std::shared_ptr<IFileFind> GetStandardFileFind(std::shared_ptr<IFileDataProvider> provider)
 {
-    return std::make_shared<FileFindEnhanced>();
+    return std::make_shared<FileFindEnhanced>(provider);
 }
 
 
@@ -275,21 +276,6 @@ std::wstring FileFindEnhanced::GetFilePath() const
 
 std::wstring FileFindEnhanced::GetFilePathLong() const
 {
-    return MakeLongPathCompatible(GetFilePath());
+    return m_FileDataProvider->MakeLongPathCompatible(GetFilePath());
 }
 
-std::wstring FileFindEnhanced::MakeLongPathCompatible(const std::wstring & path)
-{
-    if (path.find(L":\\", 1) == 1) return m_Long.data() + path;
-    if (path.starts_with(L"\\\\?")) return path;
-    if (path.starts_with(L"\\\\")) return m_LongUNC.data() + path.substr(2);
-    return path;
-}
-
-bool FileFindEnhanced::DoesFileExist(const std::wstring& folder, const std::wstring& file)
-{
-    // Use this method over GetFileAttributes() as GetFileAttributes() will
-    // return valid INVALID_FILE_ATTRIBUTES on locked files
-    FileFindEnhanced finder;
-    return finder.FindFile(folder, file);
-}

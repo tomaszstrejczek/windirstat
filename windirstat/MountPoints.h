@@ -24,13 +24,15 @@
 #include <unordered_set>
 #include <vector>
 
+#include "IFileDataProvider.h"
+
 class CReparsePoints final
 {
     std::vector<std::wstring> m_Mountpoints;
 
 public:
 
-    void Initialize();
+    void Initialize(std::shared_ptr<IFileDataProvider> provider);
     bool IsVolumeMountPoint(const std::wstring& longpath, DWORD attr = INVALID_FILE_ATTRIBUTES) const;
     bool IsJunction(const std::wstring& longpath, DWORD attr = INVALID_FILE_ATTRIBUTES) const;
     static bool IsSymbolicLink(const std::wstring& longpath, DWORD attr = INVALID_FILE_ATTRIBUTES);

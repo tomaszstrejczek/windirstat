@@ -21,6 +21,7 @@
 #include "stdafx.h"
 #include "WinDirStat.h"
 #include "MainFrame.h"
+#include "IFileDataProvider.h"
 #include "DirStatDoc.h"
 #include "ExtensionView.h"
 #include "GlobalHelpers.h"

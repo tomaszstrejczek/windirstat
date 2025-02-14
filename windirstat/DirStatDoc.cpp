@@ -25,6 +25,7 @@
 #include "FileTreeView.h"
 #include "GlobalHelpers.h"
 #include "TreeMapView.h"
+#include "IFileDataProvider.h"
 #include "Item.h"
 #include "Localization.h"
 #include "MainFrame.h"
@@ -44,20 +45,16 @@
 #include <stack>
 #include <array>
 
-#include "IFileDataProvider.h"
 
 IMPLEMENT_DYNCREATE(CDirStatDoc, CDocument)
 
 CDirStatDoc::CDirStatDoc() :
         m_ShowFreeSpace(COptions::ShowFreeSpace)
       , m_ShowUnknown(COptions::ShowUnknown)
+      , m_FileDataProvider(GetStandardDataProvider())
 {
     ASSERT(nullptr == _theDocument);
     _theDocument = this;
-
-    auto provider = GetStandardDataProvider();
-    ASSERT(provider.has_value());
-    m_FileDataProvider = provider.value();
 
     VTRACE(L"sizeof(CItem) = {}", sizeof(CItem));
     VTRACE(L"sizeof(CTreeListItem) = {}", sizeof(CTreeListItem));
@@ -281,10 +278,10 @@ BOOL CDirStatDoc::OnOpenDocument(LPCWSTR lpszPathName)
         }
 
         LPCWSTR name = ppszName != nullptr ? const_cast<LPCWSTR>(*ppszName) : L"This PC";
-        m_RootItem = new CItem(IT_MYCOMPUTER | ITF_ROOTITEM, name);
+        m_RootItem = new CItem(IT_MYCOMPUTER | ITF_ROOTITEM, name, m_FileDataProvider);
         for (const auto & rootFolder : rootFolders)
         {
-            auto drive = new CItem(IT_DRIVE, rootFolder);
+            auto drive = new CItem(IT_DRIVE, rootFolder, m_FileDataProvider);
             driveItems.emplace_back(drive);
             m_RootItem->AddChild(drive);
         }
@@ -292,7 +289,7 @@ BOOL CDirStatDoc::OnOpenDocument(LPCWSTR lpszPathName)
     else
     {
         const ITEMTYPE type = IsDrive(rootFolders[0]) ? IT_DRIVE : IT_DIRECTORY;
-        m_RootItem = new CItem(type | ITF_ROOTITEM, rootFolders[0]);
+        m_RootItem = new CItem(type | ITF_ROOTITEM, filePath.empty() ? rootFolders[0] : L"/", m_FileDataProvider);
         if (m_RootItem->IsType(IT_DRIVE))
         {
             driveItems.emplace_back(m_RootItem);
@@ -661,7 +658,7 @@ bool CDirStatDoc::DeletePhysicalItems(const std::vector<CItem*>& items, const bo
             // Re-run deletion using native function to handle any long paths that were missed
             if (!toTrashBin)
             {
-                std::wstring path = FileFindEnhanced::MakeLongPathCompatible(item->GetPath());
+                std::wstring path = GetDocument()->m_FileDataProvider->MakeLongPathCompatible(item->GetPath());
                 std::error_code ec;
                 remove_all(std::filesystem::path(path.data()), ec);
             }
@@ -730,7 +727,7 @@ void CDirStatDoc::PerformUserDefinedCleanup(USERDEFINEDCLEANUP* udc, const CItem
     // Verify that path still exists
     if (item->IsType(IT_DIRECTORY | IT_DRIVE))
     {
-        if (!FolderExists(path) && !DriveExists(path))
+        if (!m_FileDataProvider->FolderExists(path) && !DriveExists(path))
         {
             DisplayError(Localization::Format(IDS_THEDIRECTORYsDOESNOTEXIST, path));
             throw;
@@ -791,19 +788,19 @@ void CDirStatDoc::RecursiveUserDefinedCleanup(USERDEFINEDCLEANUP* udc, const std
 {
     // (Depth first.)
 
-    FileFindEnhanced finder;
-    for (BOOL b = finder.FindFile(currentPath); b; b = finder.FindNextFile())
+    auto finder = GetDocument()->m_FileDataProvider->GetFinder();
+    for (BOOL b = finder->FindFile(currentPath); b; b = finder->FindNextFile())
     {
-        if (finder.IsDots() || !finder.IsDirectory())
+        if (finder->IsDots() || !finder->IsDirectory())
         {
             continue;
         }
-        if (!CDirStatApp::Get()->IsFollowingAllowed(finder.GetFilePathLong(), finder.GetAttributes()))
+        if (!CDirStatApp::Get()->IsFollowingAllowed(finder->GetFilePathLong(), finder->GetAttributes()))
         {
             continue;
         }
 
-        RecursiveUserDefinedCleanup(udc, rootPath, finder.GetFilePath());
+        RecursiveUserDefinedCleanup(udc, rootPath, finder->GetFilePath());
     }
 
     CallUserDefinedCleanup(true, udc->CommandLine.Obj(), rootPath, currentPath, udc->ShowConsoleWindow, true);
@@ -933,7 +930,7 @@ void CDirStatDoc::OnUpdateCentralHandler(CCmdUI* pCmdUI)
     static bool (*isResumable)(CItem*) = [](CItem*) { return CMainFrame::Get()->IsScanSuspended(); };
     static bool (*isSuspendable)(CItem*) = [](CItem*) { return doc->HasRootItem() && !doc->IsRootDone() && !CMainFrame::Get()->IsScanSuspended(); };
     static bool (*isStoppable)(CItem*) = [](CItem*) { return doc->HasRootItem() && !doc->IsRootDone(); };
-    static bool (*isHibernate)(CItem*) = [](CItem*) { return IsAdmin() && IsHibernateEnabled(); };
+    static bool (*isHibernate)(CItem*) = [](CItem*) { return IsAdmin() && GetDocument()->m_FileDataProvider->IsHibernateEnabled(); };
 
     static std::unordered_map<UINT, const commandFilter> filters
     {
@@ -1086,7 +1083,7 @@ void CDirStatDoc::OnSaveResults()
     if (dlg.DoModal() != IDOK) return;
 
     CWaitCursor wc;
-    SaveResults(dlg.GetPathName().GetString(), GetRootItem());
+    SaveResults(dlg.GetPathName().GetString(), GetRootItem(), m_FileDataProvider);
 }
 
 void CDirStatDoc::OnLoadResults()
@@ -1098,7 +1095,7 @@ void CDirStatDoc::OnLoadResults()
     if (dlg.DoModal() != IDOK) return;
 
     CWaitCursor wc;
-    CItem* newroot = LoadResults(dlg.GetPathName().GetString());
+    CItem* newroot = LoadResults(dlg.GetPathName().GetString(), m_FileDataProvider);
     GetDocument()->OnOpenDocument(newroot);
 }
 
@@ -1648,7 +1645,7 @@ void CDirStatDoc::StartScanningEngine(std::vector<CItem*> items)
   
             // Handle if item to be refreshed has been removed
             if (item->IsType(IT_FILE | IT_DIRECTORY | IT_DRIVE) &&
-                !FileFindEnhanced::DoesFileExist(item->GetFolderPath(),
+                !m_FileDataProvider->DoesFileExist(item->GetFolderPath(),
                     item->IsType(IT_FILE) ? item->GetName() : std::wstring()))
             {
                 // Remove item from list so we do not rescan it
@@ -1705,7 +1702,7 @@ void CDirStatDoc::StartScanningEngine(std::vector<CItem*> items)
         // Create subordinate threads if there is work to do
         for (auto& queue : m_queues | std::views::values)
         {
-            queue.StartThreads(COptions::ScanningThreads, [&queue]()
+            queue.StartThreads(COptions::ScanningThreads, [&queue, this]()
             {
                 CItem::ScanItems(&queue);
             });

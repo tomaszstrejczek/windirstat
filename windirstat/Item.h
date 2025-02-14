@@ -22,13 +22,12 @@
 
 #include "TreeListControl.h"
 #include "TreeMap.h"
+#include "IFileDataProvider.h"
 #include "DirStatDoc.h" // CExtensionData
 #include "FileFind.h" // FileFindEnhanced
 #include "BlockingQueue.h"
 
 #include <shared_mutex>
-
-class IFileDataProvider;
 
 // Columns
 enum ITEMCOLUMNS : std::uint8_t
@@ -112,9 +111,9 @@ public:
     CItem(CItem&&) = delete;
     CItem& operator=(const CItem&) = delete;
     CItem& operator=(CItem&&) = delete;
-    CItem(ITEMTYPE type, const std::wstring& name);
+    CItem(ITEMTYPE type, const std::wstring& name, std::shared_ptr<IFileDataProvider> provider);
     CItem(ITEMTYPE type, const std::wstring& name, FILETIME lastChange, ULONGLONG sizePhysical,
-        ULONGLONG sizeLogical, DWORD attributes, ULONG files, ULONG subdirs);
+        ULONGLONG sizeLogical, DWORD attributes, ULONG files, ULONG subdirs, std::shared_ptr<IFileDataProvider> provider);
     ~CItem() override;
 
     // CTreeListItem Interface
@@ -163,7 +162,7 @@ public:
 
     ULONGLONG GetProgressRange() const;
     ULONGLONG GetProgressPos() const;
-    void UpdateStatsFromDisk(std::shared_ptr<IFileDataProvider> provider);
+    void UpdateStatsFromDisk();
     const std::vector<CItem*>& GetChildren() const;
     CItem* GetParent() const;
     void AddChild(CItem* child, bool addOnly = false);
@@ -265,8 +264,8 @@ private:
     bool MustShowReadJobs() const;
     COLORREF GetPercentageColor() const;
     std::wstring UpwardGetPathWithoutBackslash() const;
-    CItem* AddDirectory(const FileFindEnhanced& finder);
-    CItem* AddFile(const FileFindEnhanced& finder);
+    CItem* AddDirectory(const std::shared_ptr<IFileFind> finder);
+    CItem* AddFile(const std::shared_ptr<IFileFind> finder);
     void UpwardDrivePacman();
 
     // Used for initialization of hashing process
@@ -296,4 +295,5 @@ private:
     std::atomic<ULONGLONG> m_SizeLogical = 0;     // Total local size of self or subtree
     DWORD m_Attributes = INVALID_FILE_ATTRIBUTES; // File or directory attributes of the item
     ITEMTYPE m_Type;                              // Indicates our type.
+    std::shared_ptr<IFileDataProvider> m_FileDataProvider; // File data provider
 };

@@ -24,6 +24,7 @@
 #include "BlockingQueue.h"
 #include "Options.h"
 #include "GlobalHelpers.h"
+#include "IFileDataProvider.h"
 
 #include <unordered_map>
 #include <vector>
@@ -31,7 +32,6 @@
 class CItem;
 class CItemDupe;
 class CItemTop;
-class IFileDataProvider;
 
 //
 // The treemap colors as calculated in CDirStatDoc::SetExtensionColors()

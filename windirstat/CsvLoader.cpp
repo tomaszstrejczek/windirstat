@@ -20,6 +20,7 @@
 
 #include "stdafx.h"
 #include "langs.h"
+#include "IFileDataProvider.h"
 #include "Item.h"
 #include "Localization.h"
 #include "CsvLoader.h"
@@ -104,7 +105,7 @@ static std::string QuoteAndConvert(const std::wstring& inc)
     return out;
 }
 
-CItem* LoadResults(const std::wstring & path)
+CItem* LoadResults(const std::wstring & path, std::shared_ptr<IFileDataProvider> provider)
 {
     std::ifstream reader(path);
     if (!reader.is_open()) return nullptr;
@@ -185,7 +186,8 @@ CItem* LoadResults(const std::wstring & path)
             _wcstoui64(fields[orderMap[FIELD_SIZE_LOGICAL]].c_str(), nullptr, 10),
             wcstoul(fields[orderMap[FIELD_ATTRIBUTES]].c_str(), nullptr, 16),
             wcstoul(fields[orderMap[FIELD_FILES]].c_str(), nullptr, 10),
-            wcstoul(fields[orderMap[FIELDS_FOLDERS]].c_str(), nullptr, 10));
+            wcstoul(fields[orderMap[FIELDS_FOLDERS]].c_str(), nullptr, 10),
+            provider);
 
         if (isRoot)
         {
@@ -219,7 +221,7 @@ CItem* LoadResults(const std::wstring & path)
     return newroot;
 }
 
-bool SaveResults(const std::wstring& path, CItem * item)
+bool SaveResults(const std::wstring& path, CItem * item, std::shared_ptr<IFileDataProvider> provider)
 {
     // Output header line to file
     std::ofstream outf;

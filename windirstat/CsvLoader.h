@@ -24,5 +24,5 @@
 
 #include <string>
 
-bool SaveResults(const std::wstring& path, CItem* item);
-CItem* LoadResults(const std::wstring& path);
+bool SaveResults(const std::wstring& path, CItem* item, std::shared_ptr<IFileDataProvider> provider);
+CItem* LoadResults(const std::wstring& path, std::shared_ptr<IFileDataProvider> provider);

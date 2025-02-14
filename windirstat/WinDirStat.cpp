@@ -129,7 +129,7 @@ std::tuple<ULONGLONG, ULONGLONG> CDirStatApp::GetFreeDiskSpace(const std::wstrin
 
 void CDirStatApp::ReReadMountPoints()
 {
-    m_ReparsePoints.Initialize();
+    m_ReparsePoints.Initialize(GetStandardDataProvider());
 }
 
 bool CDirStatApp::IsFollowingAllowed(const std::wstring& longpath, const DWORD attr) const

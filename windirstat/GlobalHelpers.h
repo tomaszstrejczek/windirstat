@@ -58,7 +58,6 @@ std::wstring FormatVolumeName(const std::wstring& rootPath, const std::wstring& 
 std::wstring GetFolderNameFromPath(const std::wstring & path);
 std::wstring GetCOMSPEC();
 void WaitForHandleWithRepainting(HANDLE h, DWORD TimeOut = INFINITE);
-bool FolderExists(const std::wstring & path);
 bool DriveExists(const std::wstring& path);
 std::wstring MyQueryDosDevice(const std::wstring & drive);
 bool IsSUBSTedDrive(const std::wstring & drive);
@@ -80,7 +79,6 @@ std::wstring GetVolumePathNameEx(const std::wstring& path);
 void DisplayError(const std::wstring& error);
 std::wstring TranslateError(HRESULT hr = static_cast<HRESULT>(GetLastError()));
 void DisableHibernate();
-bool IsHibernateEnabled();
 bool ShellExecuteWrapper(const std::wstring& lpFile, const std::wstring& lpParameters = L"", const std::wstring& lpVerb = L"",
     HWND hwnd = *AfxGetMainWnd(), const std::wstring& lpDirector = L"", INT nShowCmd = SW_NORMAL);
 std::wstring GetBaseNameFromPath(const std::wstring& path);

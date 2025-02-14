@@ -51,7 +51,7 @@ bool CReparsePoints::IsReparseType(const std::wstring & longpath, const std::uno
         return (mask && (tag & tagType) == tag) || (!mask && tag == tagType); });
 }
 
-void CReparsePoints::Initialize()
+void CReparsePoints::Initialize(std::shared_ptr<IFileDataProvider> provider)
 {
     // Enable reading of reparse data for cloud links
     SmartPointer<HMODULE> hmod(FreeLibrary, LoadLibrary(L"ntdll.dll"));
@@ -99,7 +99,7 @@ void CReparsePoints::Initialize()
             {
                 _wcslwr_s(name, len + 1);
                 m_Mountpoints.emplace_back(name);
-                m_Mountpoints.emplace_back(FileFindEnhanced::MakeLongPathCompatible(name));
+                m_Mountpoints.emplace_back(provider->MakeLongPathCompatible(name));
             }
         }
     }

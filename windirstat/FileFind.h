@@ -23,6 +23,8 @@
 #include "stdafx.h"
 #include <string>
 
+#include "IFileDataProvider.h"
+
 class IFileFind
 {
 public:
@@ -41,5 +43,4 @@ public:
     virtual std::wstring GetFilePath() const = 0;
     virtual std::wstring GetFilePathLong() const = 0;
 };
-
-std::shared_ptr<IFileFind> GetStandardFileFind();
+std::shared_ptr<IFileFind> GetStandardFileFind(std::shared_ptr<IFileDataProvider> provider);
