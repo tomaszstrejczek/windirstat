@@ -167,8 +167,18 @@ bool FileListProvider::BuildInternalTree()
                 current = child;
             }
 
+            try {
             auto item = std::make_shared<Item>(fname, std::stoull(sizeStr), std::stoull(createTimeStr));
             current->m_Children.push_back(item);
+            }
+            catch (const std::invalid_argument& e) {
+                std::wcerr << L"Invalid size or create time: " << sizeStr << L", " << createTimeStr << std::endl;
+                continue;  // Skip this line
+            }
+            catch (const std::out_of_range& e) {
+                std::wcerr << L"Size or create time out of range: " << sizeStr << L", " << createTimeStr << std::endl;
+                continue;  // Skip this line
+            }
         }
     }
 
@@ -248,9 +258,6 @@ bool FileFindFileList::FindFile(const std::wstring& strFolder, const std::wstrin
         if (part.empty()) {
             continue;  // Skip empty parts (if any)
         }
-
-        if (m_Current->m_Name == part)
-            continue;
 
         // Check if the current item has a child with this name
         std::shared_ptr<Item> child = nullptr;
